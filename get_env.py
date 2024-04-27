@@ -3,7 +3,9 @@ import os
 def download(LibcNameList):
     for item in LibcNameList:
         os.system("./download {}".format(item))
-
+def download_old(LibcNameList):
+    for item in LibcNameList:
+        os.system("./download_old {}".format(item))
 def mkDir(name):
     for item in name:
         os.system("sudo mkdir -p /glibc/{}/64/lib/".format(item))
@@ -23,18 +25,22 @@ os.system("./update_list")
 
 f=open("./list","r")
 content=f.read()
-
 print(content)
 LibcNameList=content.split("\n")
-
 name=getName(LibcNameList)
 mkDir(name)
 
+f=open("./old_list","r")
+content=f.read()
+print(content)
+LibcNameList_old=content.split("\n")
+name=getName(LibcNameList)
+mkDir(name)
 
 download(LibcNameList)
-for LibcName in LibcNameList:
-    
+download_old(LibcNameList_old)
 
+for LibcName in LibcNameList:
     for item in name:
         
         if (item in  LibcName) and ("amd64" in LibcName):
@@ -42,3 +48,11 @@ for LibcName in LibcNameList:
             os.system("sudo cp ./libs/{}/* /glibc/{}/64/lib/".format(LibcName,item))
         if (item in LibcName) and ("i386" in LibcName):
             os.system("sudo cp ./libs/{}/* /glibc/{}/32/lib/".format(LibcName,item))
+
+for LibcName in LibcNameList_old:
+    for item in name:
+
+        if (item in LibcName) and ("amd64" in LibcName):
+            os.system("sudo cp ./libs/{}/* /glibc/{}/64/lib/".format(LibcName, item))
+        if (item in LibcName) and ("i386" in LibcName):
+            os.system("sudo cp ./libs/{}/* /glibc/{}/32/lib/".format(LibcName, item))

@@ -1,30 +1,96 @@
 #!/bin/bash
 
-FILE_NAME=$1
-LIBC_VERSION=$2
-WORKDIR=$(pwd)
+while getopts "f:v:d:c:l:h" opt; do
+    case "${opt}" in
+        f)
+            FILE_NAME=${OPTARG}
+            ;;
+        v)
+            LIBC_VERSION=${OPTARG}
+            ;;
+        d)
+            LD_PATH=${OPTARG}
+            ;;
+        c)
+            LIBC_PATH=${OPTARG}
+            ;;
+        l)
+            LIB_PATH=${OPTARG}
+            ;;
+        h)
+            echo "Usage: "
+            echo "[-f FILE_NAME]                Your_elf_name"
+            echo "[-v LIBC_VERSION]             Use libc at libc_all_in_one"
+            echo "[-d LD_PATH] [-c LIBC_PATH]   Use your libc and ld  "
+            echo "[-h]                          help"
+            exit 0
+            ;;
+        *)
+            echo "Invalid option: ${opt}"
+            exit 1
+            ;;
+    esac
+done
 
-LIBC_DIR=/glibc
-LIBC_DIR=$(find $LIBC_DIR -name "$LIBC_VERSION*")
-if [ "$LIBC_DIR" = "" ];then
-    echo "Not support version or your $LIBC_DIR don't have libc"
+if ! [ "$FILE_NAME" ]; then
+    echo "parameter error"
     exit
 fi
 
-EBIT=$(file $FILE_NAME |awk '{print$3}'|cut -c 1-2)
-if [ $EBIT -eq "32" ];then
-    libc_dir=$LIBC_DIR/32/lib
-elif [ $EBIT -eq "64" ];then
-    libc_dir=$LIBC_DIR/64/lib
-else
-    echo "It's not a elf file"
+if [ "$LD_PATH" ] && [ "$LIBC_PATH" ]; then
+    echo "parameter error"
     exit
 fi
 
-if  [ "$3" ] 
-then
-	patchelf --set-interpreter $libc_dir/ld-$LIBC_VERSION.so --set-rpath $WORKDIR/ $1
-else
-	patchelf --set-interpreter $libc_dir/ld-$LIBC_VERSION.so --set-rpath $libc_dir/ $1
+if [ "$LIBC_VERSION" ]; then
+    echo "$0"
+    path=$(readlink -f "$0")
+    LIBS_DIR="$(dirname "$path")/libs"
+    echo "$LIBS_DIR"
+    EBIT=$(file $FILE_NAME |awk '{print$3}'|cut -c 1-2)
+
+    if [ $EBIT -eq "32" ]; then
+        LIBC_PATHS=$(find $LIBS_DIR -name "$LIBC_VERSION*i386")
+        
+    elif [ $EBIT -eq "64" ]; then
+        LIBC_PATHS=$(find $LIBS_DIR -name "$LIBC_VERSION*amd64")
+    else
+        echo "It's not a elf file"
+        exit
+    fi
+
+    if [ "$LIBC_PATHS" = "" ]; then
+        echo "Not support version"
+        exit
+    fi
+    results_array=($LIBC_PATHS)
+
+    PS3="Please choose version:"
+
+    select libc_path in "${results_array[@]}"; do
+        if [[ -n $libc_path ]]; then
+            LIBC_PATH="$libc_path/libc-$LIBC_VERSION.so"
+            LD_PATH="$libc_path/ld-$LIBC_VERSION.so"
+            break
+        else
+            echo "wrong!"
+            exit 
+        fi
+    done
 fi
+
+echo "libc:$LIBC_PATH"
+echo "ld:  $LD_PATH"
+
+
+if [ -e "$FILE_NAME.backup" ]; then
+    rm "$FILE_NAME"
+    cp "$FILE_NAME.backup" "$FILE_NAME"
+    chmod 731 "$FILE_NAME"
+else
+    cp "$FILE_NAME" "$FILE_NAME.backup" 
+    chmod 731 "$FILE_NAME"
+fi
+patchelf --set-interpreter $LD_PATH $FILE_NAME
+patchelf --replace-needed  libc.so.6 $LIBC_PATH $FILE_NAME
 echo "success!!!"
