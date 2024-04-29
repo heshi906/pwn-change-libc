@@ -33,12 +33,20 @@ while getopts "f:v:d:c:l:h" opt; do
 done
 
 if ! [ "$FILE_NAME" ]; then
-    echo "parameter error"
+    echo "Usage: "
+    echo "[-f FILE_NAME]                Your_elf_name"
+    echo "[-v LIBC_VERSION]             Use libc at libc_all_in_one"
+    echo "[-d LD_PATH] [-c LIBC_PATH]   Use your libc and ld  "
+    echo "[-h]                          help"
     exit
 fi
 
-if [ "$LD_PATH" ] && [ "$LIBC_PATH" ]; then
-    echo "parameter error"
+if [[ "$LD_PATH"  ||  "$LIBC_PATH" ]] && ! [[ "$LD_PATH" && "$LIBC_PATH" ]]; then
+    echo "Usage: "
+    echo "[-f FILE_NAME]                Your_elf_name"
+    echo "[-v LIBC_VERSION]             Use libc at libc_all_in_one"
+    echo "[-d LD_PATH] [-c LIBC_PATH]   Use your libc and ld  "
+    echo "[-h]                          help"
     exit
 fi
 
